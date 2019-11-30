@@ -1,0 +1,4 @@
+*json*
+*ipynb*
+__pycache__/*
+*.log
