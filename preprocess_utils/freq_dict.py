@@ -27,7 +27,7 @@ def process(filename):
         print ('Processing line:', line_index)
       data = json.loads(line)
       if len(data) < 3e4:
-        for i, dic in enumerate(data[:-1]):  #JS data[:-1] or PY data
+        for i, dic in enumerate(data):  #JS data[:-1] or PY data
           if 'value' in dic.keys():
             terminal_num.add(dic['value'])
             freq_dict[dic['value']] += 1
@@ -41,9 +41,9 @@ def save(filename):
 
 
 if __name__ == '__main__':
-  start_time = time.time()
-  process(train_filename)
-  process(test_filename)
-  save(target_filename)
-  print(freq_dict['EmptY'], freq_dict['Empty'], freq_dict['empty'], freq_dict['EMPTY'], freq_fict[EMPTY_TOKEN])
-  print('Finishing generating freq_dict and takes %.2f'%(time.time() - start_time))
+    start_time = time.time()
+    process(train_filename)
+    process(test_filename)
+    save(target_filename)
+    print(freq_dict['EmptY'], freq_dict['Empty'], freq_dict['empty'], freq_dict['EMPTY'], freq_dict[EMPTY_TOKEN])
+    print('Finishing generating freq_dict and takes %.2f'%(time.time() - start_time))

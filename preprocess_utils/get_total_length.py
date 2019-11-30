@@ -1,8 +1,8 @@
 import json
 import time
 
-train_filename = '../json_data/python100k_train.json'
-test_filename = '../json_data/python50k_eval.json'
+train_filename = './json_data/python100k_train.json'
+test_filename = './json_data/python50k_eval.json'
 
 def process(filename):
   with open(filename, encoding='latin-1') as lines:
