@@ -1,72 +1,75 @@
 import torch
-
-def convert_to_ix(sent, field):
-    res = []
-    if isinstance(sent, str):
-        sent = sent.split()
-    for item in ['SOS'] + sent + ['EOS']:
-        res.append(field.vocab.stoi[item])
-    return res
-
-def convert_to_sent(ix, field):
-    res = []
-    for item in ix:
-        try:
-            if field.vocab.itos[item] not in ['EOS', 'SOS', 'PAD']:
-                res.append(field.vocab.itos[item])
-            if field.vocab.itos[item] in ['EOS', 'PAD']:
-                break
-        except IndexError:
-            break
-    if len(res) == 0:
-        res = ['PAD']
-    return ' '.join(res)
+from preprocess_utils.utils import *
 
 class MainDataset(torch.utils.data.Dataset):
-    def __init__(self, pickle_data, src_field):
+    def __init__(self, 
+            N_filename = './pickle_data/PY_non_terminal_small.pickle',
+            T_filename = './pickle_data/PY_terminal_10k_whole.pickle',
+            is_train=False
+        ):
         super(MainDataset).__init__()
-        self.field = Field()
-        self.src_field = src_field
-        self.data = sorted(mt_data, key=lambda x: len(x.src))
+        train_dataN, test_dataN, vocab_sizeN, train_dataT, test_dataT, vocab_sizeT, attn_size, train_dataP, test_dataP = input_data(
+    N_filename, T_filename
+)
+        if self.is_train:
+            self.data = list(zip(train_dataN, train_dataT, train_dataP))
+        else:
+            self.data = list(zip(test_dataN, test_dataT, test_dataP))
+        self.data = sorted(self.data, key=lambda x: len(x[0]))
+        self.vocab_sizeN = vocab_sizeN
+        self.vocab_sizeT = vocab_sizeT
+        self.attn_size = attn_size
+        self.eof_N_id = vocab_sizeN - 1
+        self.eof_T_id = vocab_sizeT - 1
+        self.unk_id = vocab_sizeT - 2
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        src_raw = self.data[idx].src
-        trg_raw = self.data[idx].trg
-        return convert_to_ix(src_raw, self.field), convert_to_ix(trg_raw, self.field)
+        item = self.data[i]
+        return item
+    
+    def collate_fn(self, samples, device='cpu'):
+        sent_N = [sample[1] for sample in samples]
+        sent_T = [sample[1] for sample in samples]
+        sent_P = [sample[2] for sample in samples]
 
-def collate_fn(samples, PAD_token=1, device='cpu'):
-    sent = [sample[0] for sample in samples]
-    s_parent = [sample[1] for sample in samples]
+        s_max_length = max(map(lambda x: len(x), sent_N))
 
-    s_max_length = max(map(lambda x: len(x), sent))
+        sent_N_tensors = []
+        sent_T_tensors = []
+        sent_P_tensors = []
 
-    s_tensors = []
-    s_tensor_parents = []
+        for sn, st, sp in zip(sent_N, sent_T, sent_P):
+            sn_tensor = torch.ones(
+                s_max_length
+                , dtype=torch.long
+                , device=device
+            ) * self.eof_N_id
 
-    for s, sp in zip(sent, s_parent):
-        s_res = torch.ones(
-            s_max_length
-            , dtype=torch.long
-            , device=device
-        ) * PAD_token
+            st_tensor = torch.ones(
+                s_max_length
+                , dtype=torch.long
+                , device=device
+            ) * self.eof_T_id
 
-        s_parent = torch.ones(
-            s_max_length
-            , dtype=torch.long
-            , device=device
-        ) * PAD_token
+            sp_tensor = torch.ones(
+                s_max_length
+                , dtype=torch.long
+                , device=device
+            ) * 1
 
-        for idx, w in enumerate(s):
-            s_res[idx] = w
-            s_parent[idx] = sp[idx]
+            for idx, w in enumerate(sn):
+                sn_tensor[idx] = w
+                st_tensor[idx] = st[idx]
+                sp_tensor[idx] = sp[idx]
+            sent_N_tensors.append(sn_tensor.unsqueeze(0))
+            sent_T_tensors.append(st_tensor.unsqueeze(0))
+            sent_P_tensors.append(sp_tensor.unsqueeze(0))
 
-        s_tensors.append(s_res.unsqueeze(0))
-        s_tensor_parents.append(s_parent.unsqueeze(0))
+        sent_N_tensors = torch.cat(sent_N_tensors, dim=0)
+        sent_T_tensors = torch.cat(sent_T_tensors, dim=0)
+        sent_P_tensors = torch.cat(sent_P_tensors, dim=0)
 
-    s_tensor = torch.cat(s_tensors, dim=0)
-    s_tensor_parent = torch.cat(s_tensor_parents, dim=0)
-
-    return s_tensor, s_tensor_parent
+        return sent_N_tensors, sent_T_tensors, sent_P_tensors

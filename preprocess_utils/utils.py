@@ -35,6 +35,35 @@ def read_T_pickle(filename):
     print ('Finish reading data!!')
     return train_data, test_data, vocab_size, attn_size
 
+def input_data(N_filename, T_filename):
+    start_time = time.time()
+    with open(N_filename, 'rb') as f:
+        print ("reading data from ", N_filename)
+        save = pickle.load(f)
+        train_dataN = save['trainData']
+        test_dataN = save['testData']
+        train_dataP = save['trainParent']
+        test_dataP = save['testParent']
+        vocab_sizeN = save['vocab_size']
+        print ('the vocab_sizeN is %d (not including the eof)' %vocab_sizeN)
+        print ('the number of training data is %d' %(len(train_dataN)))
+        print ('the number of test data is %d\n' %(len(test_dataN)))
+
+    with open(T_filename, 'rb') as f:
+        print ("reading data from ", T_filename)
+        save = pickle.load(f)
+        train_dataT = save['trainData']
+        test_dataT = save['testData']
+        vocab_sizeT = save['vocab_size']
+        attn_size = save['attn_size']
+        print ('the vocab_sizeT is %d (not including the unk and eof)' %vocab_sizeT)
+        print ('the attn_size is %d' %attn_size)
+        print ('the number of training data is %d' %(len(train_dataT)))
+        print ('the number of test data is %d' %(len(test_dataT)))
+        print ('Finish reading data and take %.2f\n'%(time.time()-start_time))
+
+    return train_dataN, test_dataN, vocab_sizeN, train_dataT, test_dataT, vocab_sizeT, attn_size, train_dataP, test_dataP
+
 
 def save(filename, terminal_dict, terminal_num, vocab_size, sorted_freq_dict):
   with open(filename, 'wb') as f:
