@@ -12,14 +12,14 @@ CONFIG_FILE = 'configs/default.yml'
 
 def train(config):
     device = config.train.device
-    
+
     data_train = MainDataset(
         N_filename = config.data.N_filename,
         T_filename = config.data.T_filename,
         is_train=True,
         truncate_size=config.data.truncate_size
     )
-    
+
     data_val = MainDataset(
         N_filename = config.data.N_filename,
         T_filename = config.data.T_filename,
@@ -86,13 +86,13 @@ def train(config):
             loss.backward()
 
             if (i + 1) % 100 == 0:
-                print('temp_loss: %f, temp_acc: %f' % (loss.item(), acc_item), flush=True)
+                print('\ntemp_loss: %f, temp_acc: %f' % (loss.item(), acc_item), flush=True)
 #             if (i + 1) % 1000 == 0:
 #                 break
 
             optimizer.step()
 
-        print("avg_loss: %f, avg_acc: %f" % (loss_avg/total, acc_avg/total))
+        print("\navg_loss: %f, avg_acc: %f" % (loss_avg/total, acc_avg/total))
 
         if (epoch + 1) % config.train.eval_period == 0:
             with torch.no_grad():

@@ -27,7 +27,7 @@ class DecoderAttention(nn.Module):
         self.hidden_size = hidden_size
         self.pointer = pointer
         self.device = device
-    
+
         self.embeddingN = nn.Embedding(vocab_sizeN, embedding_sizeN, vocab_sizeN - 1)
         self.embeddingT = nn.Embedding(vocab_sizeT + attn_size + 3, embedding_sizeT, vocab_sizeT - 1)
 
@@ -51,7 +51,7 @@ class DecoderAttention(nn.Module):
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
         self.selu = nn.SELU()
-    
+
     def hook_hc(self, batch_size):
         return (Variable(torch.zeros(batch_size, self.hidden_size).to(self.device)),
                     Variable(torch.zeros(batch_size, self.hidden_size).to(self.device)))
@@ -79,7 +79,7 @@ class DecoderAttention(nn.Module):
         t_input = self.embeddingT(t_input)
         input = torch.cat([n_input, t_input], 1)
         input = self.dropout(input) # (batch_size, embedding_size)
-        
+
         scores = self.W_hidden(h).unsqueeze(1) # (batch_size, max_length, hidden_size)
         scores = torch.tanh(scores)
         scores = self.v(scores).squeeze(2) # (batch_size, max_length)
@@ -87,9 +87,9 @@ class DecoderAttention(nn.Module):
         attn_weights = F.softmax(scores, dim=1) # (batch_size, max_length)
         attn_weights = attn_weights.unsqueeze(1) # (batch_size, 1,  max_length)
         context = torch.matmul(attn_weights, enc_out).squeeze(1) # (batch_size, hidden_size)
-        
+
         context = torch.cat((input, context), 1)
-        
+
         hidden_attn = self.selu(self.W_context(context))
 
         h, c = self.lstm(hidden_attn, hc) # (batch_size, 1,  hidden_size)
@@ -147,7 +147,7 @@ class MixtureAttention(nn.Module):
         if label_smoothing > 0:
             self.criterion = LabelSmoothingLoss(
                 label_smoothing,
-                tgt_vocab_size=vocab_sizeT + attn_size + 3, 
+                tgt_vocab_size=vocab_sizeT + attn_size + 3,
                 ignore_index=self.eof_T_id,
                 device=self.device
             ) # ignore EOF ?!
@@ -155,7 +155,7 @@ class MixtureAttention(nn.Module):
             self.criterion = nn.NLLLoss(reduction='none')
 
         self.pointer = pointer
-    
+
 
     def forward(
         self,
@@ -187,51 +187,50 @@ class MixtureAttention(nn.Module):
             requires_grad=False
         ).to(self.device)
         hc = None
-        
+
         parent = torch.zeros(
             batch_size,
             dtype=torch.long,
             device=self.device
         )
 
-        if True:
-            loss = torch.tensor(0.0, device=self.device)
+        loss = torch.tensor(0.0, device=self.device)
 
-            token_losses = torch.zeros(
-                batch_size,
-                max_length
-            ).to(self.device)
+        token_losses = torch.zeros(
+            batch_size,
+            max_length
+        ).to(self.device)
 
-            ans = []
+        ans = []
 
-            for iter in range(max_length):
-                memory = hs[:, iter - self.attn_size : iter]
-                output, hc = self.decoder(
-                    input,
-                    hc,
-                    memory.clone().detach(),
-                    full_mask[:, iter - self.attn_size : iter],
-                    hs[torch.arange(batch_size),parent].squeeze(1).clone().detach()
-                )
-                hs[:, iter] = hc[0]
-                if self.pointer:
-                    output, local_attn = output
-                    global_topv, global_topi = output.topk(1)
-                    if local_attn.shape[1] > 0:
-                        local_topv, local_topi = local_attn.topk(1)
-                        # replace global distribution with local distribution
-                        for i in range(output.shape[0]):
-                            if global_topv[i] > local_topv[i]:
-                                output[i] = 0
-                                output[i, self.vocab_sizeT:self.vocab_sizeT + len(local_attn[i])] = local_attn[i]
-                topv, topi = output.topk(1)
-                input = (n_tensor[:, iter].clone(), t_tensor[:, iter].clone())
-                parent = p_tensor[:, iter]
+        for iter in range(max_length):
+            memory = hs[:, iter - self.attn_size : iter]
+            output, hc = self.decoder(
+                input,
+                hc,
+                memory.clone().detach(),
+                full_mask[:, iter - self.attn_size : iter],
+                hs[torch.arange(batch_size),parent].squeeze(1).clone().detach()
+            )
+            hs[:, iter] = hc[0]
+            if self.pointer:
+                output, local_attn = output
+                global_topv, global_topi = output.topk(1)
+                if local_attn.shape[1] > 0:
+                    local_topv, local_topi = local_attn.topk(1)
+                    # replace global distribution with local distribution
+                    for i in range(output.shape[0]):
+                        if global_topv[i] > local_topv[i]:
+                            output[i] = 0
+                            output[i, self.vocab_sizeT:self.vocab_sizeT + len(local_attn[i])] = local_attn[i]
+            topv, topi = output.topk(1)
+            input = (n_tensor[:, iter].clone(), t_tensor[:, iter].clone())
+            parent = p_tensor[:, iter]
 
-                ans.append(topi.detach())
+            ans.append(topi.detach())
 #                 cond = (t_tensor[:, iter] < self.vocab_sizeT + self.attn_size).long()
 #                 masked_target = cond * t_tensor[:, iter] + (1 - cond) * self.eof_T_id
-                token_losses[:, iter] = self.criterion(output, t_tensor[:, iter].clone().detach())
+            token_losses[:, iter] = self.criterion(output, t_tensor[:, iter].clone().detach())
 
-            loss = token_losses.sum() #/ batch_size
-            return loss, torch.cat(ans, dim=1)
+        loss = token_losses.sum() #/ batch_size
+        return loss, torch.cat(ans, dim=1)
