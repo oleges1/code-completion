@@ -3,6 +3,7 @@ Pytorch version of code completion with neural attention and pointer networks
 
 
 ### TO DO LIST:
+- [ ] fix data yelding, len dataset
 - [ ] fix accuracy calculation
 - [ ] fix loss calculation
 - [ ] add simplier models
