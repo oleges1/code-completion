@@ -1,6 +1,6 @@
 *json*
 *ipynb*
-*/__pycache__/*
+*__pycache__*
 *.log
 *.pickle
 *.txt

@@ -5,12 +5,14 @@ class MainDataset(torch.utils.data.Dataset):
     def __init__(self, 
             N_filename = './pickle_data/PY_non_terminal_small.pickle',
             T_filename = './pickle_data/PY_terminal_10k_whole.pickle',
-            is_train=False
+            is_train=False,
+            truncate_size=150
         ):
         super(MainDataset).__init__()
         train_dataN, test_dataN, vocab_sizeN, train_dataT, test_dataT, vocab_sizeT, attn_size, train_dataP, test_dataP = input_data(
     N_filename, T_filename
 )
+        self.is_train = is_train
         if self.is_train:
             self.data = list(zip(train_dataN, train_dataT, train_dataP))
         else:
@@ -22,16 +24,25 @@ class MainDataset(torch.utils.data.Dataset):
         self.eof_N_id = vocab_sizeN - 1
         self.eof_T_id = vocab_sizeT - 1
         self.unk_id = vocab_sizeT - 2
+        self.truncate_size = truncate_size
 
     def __len__(self):
         return len(self.data)
 
     def __getitem__(self, idx):
-        item = self.data[i]
-        return item
+        sent_N, sent_T, sent_P = self.data[idx]
+        if len(sent_N) > self.truncate_size:
+            start_i = np.random.choice(len(sent_N) - self.truncate_size)
+            sent_N = sent_N[start_i: start_i + self.truncate_size]
+            sent_T = sent_T[start_i: start_i + self.truncate_size]
+            sent_P = np.array(sent_P[start_i: start_i + self.truncate_size])
+            sent_P -= start_i
+            cond = np.array(sent_P < 0, dtype='int')
+            sent_P = cond * 0 + sent_P * (1 - cond)
+        return (sent_N, sent_T, sent_P)
     
     def collate_fn(self, samples, device='cpu'):
-        sent_N = [sample[1] for sample in samples]
+        sent_N = [sample[0] for sample in samples]
         sent_T = [sample[1] for sample in samples]
         sent_P = [sample[2] for sample in samples]
 
