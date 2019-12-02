@@ -35,10 +35,11 @@ class MainDataset(torch.utils.data.Dataset):
             start_i = np.random.choice(len(sent_N) - self.truncate_size)
             sent_N = sent_N[start_i: start_i + self.truncate_size]
             sent_T = sent_T[start_i: start_i + self.truncate_size]
-            sent_P = np.array(sent_P[start_i: start_i + self.truncate_size])
+            sent_P = np.array(sent_P[start_i: start_i + self.truncate_size], dtype='int')
             sent_P -= start_i
             cond = np.array(sent_P < 0, dtype='int')
             sent_P = cond * 0 + sent_P * (1 - cond)
+            sent_P = list(map(int, sent_P))
         return (sent_N, sent_T, sent_P)
     
     def collate_fn(self, samples, device='cpu'):

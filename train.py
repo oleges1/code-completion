@@ -86,7 +86,7 @@ def train(config):
             loss.backward()
 
             if (i + 1) % 100 == 0:
-                print('temp_loss: %f, temp_acc: %f' % (loss.item(), acc_item))
+                print('temp_loss: %f, temp_acc: %f' % (loss.item(), acc_item), flush=True)
 #             if (i + 1) % 1000 == 0:
 #                 break
 
