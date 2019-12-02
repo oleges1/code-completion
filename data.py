@@ -1,8 +1,19 @@
 import torch
 from preprocess_utils.utils import *
 
+def data_gen(data, split_size):
+    for sample in data:
+        accum = []
+        for item in sample:
+            accum.append(item)
+            if len(accum) == split_size:
+                yield accum
+                accum = []
+        if len(accum) > 0:
+            yield accum
+
 class MainDataset(torch.utils.data.Dataset):
-    def __init__(self, 
+    def __init__(self,
             N_filename = './pickle_data/PY_non_terminal_small.pickle',
             T_filename = './pickle_data/PY_terminal_10k_whole.pickle',
             is_train=False,
@@ -14,9 +25,9 @@ class MainDataset(torch.utils.data.Dataset):
 )
         self.is_train = is_train
         if self.is_train:
-            self.data = list(zip(train_dataN, train_dataT, train_dataP))
+            self.data = [item for item in data_gen(zip(train_dataN, train_dataT, train_dataP), truncate_size)]
         else:
-            self.data = list(zip(test_dataN, test_dataT, test_dataP))
+            self.data = [item for item in data_gen(zip(test_dataN, test_dataT, test_dataP), truncate_size)]
         self.data = sorted(self.data, key=lambda x: len(x[0]))
         self.vocab_sizeN = vocab_sizeN
         self.vocab_sizeT = vocab_sizeT
@@ -41,7 +52,7 @@ class MainDataset(torch.utils.data.Dataset):
             sent_P = cond * 0 + sent_P * (1 - cond)
             sent_P = list(map(int, sent_P))
         return (sent_N, sent_T, sent_P)
-    
+
     def collate_fn(self, samples, device='cpu'):
         sent_N = [sample[0] for sample in samples]
         sent_T = [sample[1] for sample in samples]
