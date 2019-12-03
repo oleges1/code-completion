@@ -1,14 +1,22 @@
 import torch
 from preprocess_utils.utils import *
 
+def fix_parent(p, start_i):
+    p -= start_i
+    return 0 if p < 0 else p
+
 def data_gen(data, split_size):
     for sample in data:
         accum = []
-        for item in sample:
-            accum.append(item)
+        start_i = 0
+        for i, item in enumerate(sample):
+            n, t, p = item
+            p = fix_parent(p, start_i)
+            accum.append((n, t, p))
             if len(accum) == split_size:
                 yield accum
                 accum = []
+                start_i = i
         if len(accum) > 0:
             yield accum
 
