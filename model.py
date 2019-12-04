@@ -39,14 +39,15 @@ class DecoderAttention(nn.Module):
             hidden_size
         )
         self.dropout = nn.AlphaDropout(dropout)
-        self.lstm = nn.LSTMCell(hidden_size, hidden_size)
-#         self.lstm = nn.LSTM(
-#             hidden_size,
-#             hidden_size,
-#             num_layers=num_layers,
-#             batch_first=True,
-#             bidirectional=False
-#         )
+        # self.lstm = nn.LSTMCell(hidden_size, hidden_size)
+        # self.lstm = nn.LSTMCell(embedding_sizeN + embedding_sizeT, hidden_size)
+        self.lstm = nn.LSTM(
+            embedding_sizeN + embedding_sizeT,
+            hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=False
+        )
         self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + attn_size + 3) # map into T
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
@@ -80,6 +81,8 @@ class DecoderAttention(nn.Module):
         input = torch.cat([n_input, t_input], 1)
         input = self.dropout(input) # (batch_size, embedding_size)
 
+        h, c = self.lstm(input, hc)
+
         scores = self.W_hidden(h).unsqueeze(1) # (batch_size, max_length, hidden_size)
         scores = torch.tanh(scores)
         scores = self.v(scores).squeeze(2) # (batch_size, max_length)
@@ -92,7 +95,8 @@ class DecoderAttention(nn.Module):
 
         hidden_attn = self.selu(self.W_context(context))
 
-        h, c = self.lstm(hidden_attn, hc) # (batch_size, 1,  hidden_size)
+        # h, c = self.lstm(hidden_attn, hc) # (batch_size, 1,  hidden_size)
+
         w_t = F.log_softmax(self.w_global(torch.cat([h, c, hc_parent], dim=1)), dim=1)
         if self.pointer:
             s_t = F.sigmoid(self.w_switcher(torch.cat([h, c], dim=1)))
