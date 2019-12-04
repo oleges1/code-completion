@@ -9,12 +9,12 @@ train:
     device: cuda
     lr: 0.001
 model:
-    hidden_size: 1024
+    hidden_size: 512
     embedding_sizeT: 512
     embedding_sizeN: 300
     dropout: 0.1
-    num_layers: 1
-    label_smoothing: 0
+    num_layers: 2
+    label_smoothing: 0.1 # might be bug here
     pointer: True
 data:
     truncate_size: 100
