@@ -78,7 +78,7 @@ class DecoderAttention(nn.Module):
 #         print(out.shape, h.shape, c.shape)
         
         hidden = h[-1] # use only last layer hidden in attention
-        out = out[-1]
+        out = out.squeeze(1)
         
         scores = self.W_hidden(hidden).unsqueeze(1) # (batch_size, max_length, hidden_size)
         scores = torch.tanh(scores)
