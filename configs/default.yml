@@ -1,6 +1,6 @@
 name: default
 train:
-    batch_size: 64
+    batch_size: 128
     LOAD_EPOCH:
     epochs: 100
     num_workers: 6
@@ -17,7 +17,7 @@ model:
     label_smoothing: 0 # >0 produce negative loss (might be bug here)
     pointer: True
 data:
-    truncate_size: 200
+    truncate_size: 100
     N_filename: ./pickle_data/PY_non_terminal_small.pickle
     T_filename: ./pickle_data/PY_terminal_10k_whole.pickle
     

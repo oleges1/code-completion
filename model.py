@@ -47,7 +47,7 @@ class DecoderAttention(nn.Module):
 #             batch_first=True,
 #             bidirectional=False
 #         )
-        self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + attn_size + 3) # map into T
+        self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + 3) # map into T
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
         self.selu = nn.SELU()
@@ -214,7 +214,12 @@ class MixtureAttention(nn.Module):
             )
             hs[:, iter] = hc[0]
             if self.pointer:
-                output, local_attn = output
+                model_out, local_attn = output
+                output = torch.zeros(
+                    batch_size, 
+                    self.vocab_sizeT + self.attn_size + 3
+                ).to(self.device)
+                output[:,:model_out.shape[1]] = model_out
                 global_topv, global_topi = output.topk(1)
                 if local_attn.shape[1] > 0:
                     local_topv, local_topi = local_attn.topk(1)

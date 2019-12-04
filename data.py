@@ -1,5 +1,6 @@
 import torch
 from preprocess_utils.utils import *
+from tqdm import tqdm
 
 def fix_parent(p, start_i):
     p -= start_i
@@ -7,18 +8,24 @@ def fix_parent(p, start_i):
 
 def data_gen(data, split_size):
     for sample in data:
-        accum = []
+        accum_n = []
+        accum_t = []
+        accum_p = []
         start_i = 0
-        for i, item in enumerate(sample):
+        for i, item in enumerate(zip(*sample)):
             n, t, p = item
             p = fix_parent(p, start_i)
-            accum.append((n, t, p))
-            if len(accum) == split_size:
-                yield accum
-                accum = []
+            accum_n.append(n)
+            accum_t.append(t)
+            accum_p.append(p)
+            if len(accum_n) == split_size:
+                yield accum_n, accum_t, accum_p
+                accum_n = []
+                accum_t = []
+                accum_p = []
                 start_i = i
-        if len(accum) > 0:
-            yield accum
+        if len(accum_n) > 0:
+            yield accum_n, accum_t, accum_p
 
 class MainDataset(torch.utils.data.Dataset):
     def __init__(self,
@@ -33,9 +40,9 @@ class MainDataset(torch.utils.data.Dataset):
 )
         self.is_train = is_train
         if self.is_train:
-            self.data = [item for item in data_gen(zip(train_dataN, train_dataT, train_dataP), truncate_size)]
+            self.data = [item for item in data_gen(zip(tqdm(train_dataN), train_dataT, train_dataP), truncate_size)]
         else:
-            self.data = [item for item in data_gen(zip(test_dataN, test_dataT, test_dataP), truncate_size)]
+            self.data = [item for item in data_gen(zip(tqdm(test_dataN), test_dataT, test_dataP), truncate_size)]
         self.data = sorted(self.data, key=lambda x: len(x[0]))
         self.vocab_sizeN = vocab_sizeN
         self.vocab_sizeT = vocab_sizeT
@@ -49,17 +56,8 @@ class MainDataset(torch.utils.data.Dataset):
         return len(self.data)
 
     def __getitem__(self, idx):
-        sent_N, sent_T, sent_P = self.data[idx]
-        if len(sent_N) > self.truncate_size:
-            start_i = np.random.choice(len(sent_N) - self.truncate_size)
-            sent_N = sent_N[start_i: start_i + self.truncate_size]
-            sent_T = sent_T[start_i: start_i + self.truncate_size]
-            sent_P = np.array(sent_P[start_i: start_i + self.truncate_size], dtype='int')
-            sent_P -= start_i
-            cond = np.array(sent_P < 0, dtype='int')
-            sent_P = cond * 0 + sent_P * (1 - cond)
-            sent_P = list(map(int, sent_P))
-        return (sent_N, sent_T, sent_P)
+        item = self.data[idx]
+        return item
 
     def collate_fn(self, samples, device='cpu'):
         sent_N = [sample[0] for sample in samples]
