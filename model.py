@@ -30,7 +30,7 @@ class DecoderAttention(nn.Module):
 
         self.embeddingN = nn.Embedding(vocab_sizeN, embedding_sizeN, vocab_sizeN - 1)
         self.embeddingT = nn.Embedding(vocab_sizeT + attn_size + 3, embedding_sizeT, vocab_sizeT - 1)
-
+        
         self.W_hidden = nn.Linear(hidden_size, hidden_size)
         self.v = nn.Linear(hidden_size, 1)
 
@@ -53,17 +53,13 @@ class DecoderAttention(nn.Module):
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
         self.selu = nn.SELU()
 
-    def hook_hc(self, batch_size):
-        return (Variable(torch.zeros(batch_size, self.hidden_size).to(self.device)),
-                    Variable(torch.zeros(batch_size, self.hidden_size).to(self.device)))
-
     def forward(
         self,
         input,
         hc,
         enc_out,
         mask,
-        hc_parent
+        h_parent
     ):
         n_input, t_input = input
         batch_size = n_input.size(0)
@@ -71,35 +67,36 @@ class DecoderAttention(nn.Module):
         # (enc_out, enc_out_W) [(batch_size, max_length, hidden_size * 2), (batch_size, max_length, hidden_size)]
         # mask (batch_size, max_length)
         # hidden_prev (batch_size, hidden_size)
-        if hc is not None:
-            h, c = hc
-        else:
-            h, c = self.hook_hc(batch_size)
 
         n_input = self.embeddingN(n_input)
         t_input = self.embeddingT(t_input)
         input = torch.cat([n_input, t_input], 1)
         input = self.dropout(input) # (batch_size, embedding_size)
-
-        h, c = self.lstm(input, hc)
-
-        scores = self.W_hidden(h).unsqueeze(1) # (batch_size, max_length, hidden_size)
+        
+        out, (h, c) = self.lstm(input.unsqueeze(1), hc)
+        
+#         print(out.shape, h.shape, c.shape)
+        
+        hidden = h[-1] # use only last layer hidden in attention
+        out = out[-1]
+        
+        scores = self.W_hidden(hidden).unsqueeze(1) # (batch_size, max_length, hidden_size)
         scores = torch.tanh(scores)
         scores = self.v(scores).squeeze(2) # (batch_size, max_length)
         scores = scores.masked_fill(mask, -1e20) # (batch_size, max_length)
         attn_weights = F.softmax(scores, dim=1) # (batch_size, max_length)
         attn_weights = attn_weights.unsqueeze(1) # (batch_size, 1,  max_length)
         context = torch.matmul(attn_weights, enc_out).squeeze(1) # (batch_size, hidden_size)
-
+        
         context = torch.cat((input, context), 1)
 
         hidden_attn = self.selu(self.W_context(context))
 
         # h, c = self.lstm(hidden_attn, hc) # (batch_size, 1,  hidden_size)
 
-        w_t = F.log_softmax(self.w_global(torch.cat([h, c, hc_parent], dim=1)), dim=1)
+        w_t = F.log_softmax(self.w_global(torch.cat([hidden_attn, out, h_parent], dim=1)), dim=1)
         if self.pointer:
-            s_t = F.sigmoid(self.w_switcher(torch.cat([h, c], dim=1)))
+            s_t = F.sigmoid(self.w_switcher(torch.cat([hidden_attn, out], dim=1)))
             return [s_t * w_t, (1 - s_t) * attn_weights.squeeze(1)], (h, c)
         else:
             return w_t, (h, c)
@@ -216,7 +213,7 @@ class MixtureAttention(nn.Module):
                 full_mask[:, iter - self.attn_size : iter],
                 hs[torch.arange(batch_size),parent].squeeze(1).clone().detach()
             )
-            hs[:, iter] = hc[0]
+            hs[:, iter] = hc[0][-1] # store last layer hidden state only
             if self.pointer:
                 model_out, local_attn = output
                 output = torch.zeros(

@@ -6,11 +6,17 @@ import yaml
 from utils import DotDict
 from sklearn.metrics import accuracy_score
 import torch
+try:
+    from torch.utils.tensorboard import SummaryWriter
+except:
+    from tensorboardX import SummaryWriter
 
 # config:
 CONFIG_FILE = 'configs/default.yml'
 
 def train(config):
+    writer = SummaryWriter('logs/' + config.name)
+    
     device = config.train.device
 
     data_train = MainDataset(
@@ -87,6 +93,9 @@ def train(config):
 
             if (i + 1) % 100 == 0:
                 print('\ntemp_loss: %f, temp_acc: %f' % (loss.item(), acc_item), flush=True)
+                writer.add_scalar('train/loss', loss.item(), epoch * total + i)
+                writer.add_scalar('train/acc', acc_item, epoch * total + i)
+                
 #             if (i + 1) % 1000 == 0:
 #                 break
 
@@ -106,7 +115,9 @@ def train(config):
                     acc += accuracy_score(t.cpu().numpy().flatten(), ans.cpu().numpy().flatten())
                 acc /= len(test_loader)
                 loss_eval /= len(test_loader)
-                print('avg acc:', acc, 'avg loss:', loss_eval)
+                print('\navg acc:', acc, 'avg loss:', loss_eval)
+                writer.add_scalar('val/loss', loss_eval, epoch)
+                writer.add_scalar('val/acc', acc, epoch)
         if (epoch + 1) % config.train.checkpoint_period == 0:
             os.system('mkdir -p checkpoints/' + config.name)
             torch.save({
