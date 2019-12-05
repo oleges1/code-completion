@@ -50,6 +50,7 @@ class DecoderAttention(nn.Module):
         self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + 3) # map into T
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
+            self.sigmoid = torch.nn.Sigmoid()
     
     def embedded_dropout(self, embed, words, scale=None):
         dropout = self.dropout
@@ -111,11 +112,12 @@ class DecoderAttention(nn.Module):
 
 #         hidden_attn = self.selu(self.W_context(context))
 
-        w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
         if self.pointer:
-            s_t = F.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
-            return torch.cat([s_t * w_t, (1 - s_t) * attn_weights.squeeze(1)], dim=1), (h, c)
+            w_t = F.softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
+            s_t = self.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
+            return torch.log(torch.cat([s_t * w_t, (1 - s_t) * attn_weights.squeeze(1)], dim=1)), (h, c)
         else:
+            w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
             return w_t, (h, c)
 
 class MixtureAttention(nn.Module):
@@ -171,6 +173,7 @@ class MixtureAttention(nn.Module):
             ) # ignore EOF ?!
         else:
             self.criterion = nn.NLLLoss(reduction='none')
+#             self.criterion = nn.CrossEntropyLoss(reduction='none')
 
         self.pointer = pointer
 
