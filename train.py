@@ -89,6 +89,7 @@ def train(config):
             loss_avg += loss.item()
             acc_item = accuracy_score(t.cpu().numpy().flatten(), ans.cpu().numpy().flatten())
             acc_avg += acc_item
+            torch.nn.utils.clip_grad_norm_(model.parameters(), 15)
             loss.backward()
 
             if (i + 1) % 100 == 0:

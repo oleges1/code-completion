@@ -50,7 +50,7 @@ class DecoderAttention(nn.Module):
         self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + 3) # map into T
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
-            self.sigmoid = torch.nn.Sigmoid()
+            self.sigmoid = torch.nn.LogSigmoid()
     
     def embedded_dropout(self, embed, words, scale=None):
         dropout = self.dropout
@@ -111,13 +111,13 @@ class DecoderAttention(nn.Module):
 #         context = torch.cat((out, context), 1)
 
 #         hidden_attn = self.selu(self.W_context(context))
-
+        w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
+    
         if self.pointer:
-            w_t = F.softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
+            log_attn_weights = F.log_softmax(scores, dim=1)
             s_t = self.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
-            return torch.log(torch.cat([s_t * w_t, (1 - s_t) * attn_weights.squeeze(1)], dim=1)), (h, c)
+            return torch.cat([s_t + w_t, - s_t + log_attn_weights], dim=1), (h, c)
         else:
-            w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
             return w_t, (h, c)
 
 class MixtureAttention(nn.Module):
