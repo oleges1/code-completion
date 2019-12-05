@@ -1,6 +1,6 @@
 name: default
 train:
-    batch_size: 128
+    batch_size: 64
     LOAD_EPOCH:
     epochs: 100
     num_workers: 6
