@@ -3,7 +3,7 @@ from data import *
 import os
 from tqdm import tqdm
 import yaml
-from utils import DotDict
+from utils import DotDict, adjust_learning_rate
 from sklearn.metrics import accuracy_score
 import torch
 try:
@@ -16,7 +16,7 @@ CONFIG_FILE = 'configs/default.yml'
 
 def train(config):
     writer = SummaryWriter('logs/' + config.name)
-    
+
     device = config.train.device
 
     data_train = MainDataset(
@@ -76,6 +76,8 @@ def train(config):
         optimizer = torch.optim.AdamW(model.parameters(), lr=config.train.lr)
 
     for epoch in range(start_epoch, config.train.epochs):
+        lr = config.train.lr * config.train.lr_decay ** max(epoch + 1 - config.train.epochs, 0.0)
+        adjust_learning_rate(optimizer, lr)
         print("epoch: %04d" % epoch)
         loss_avg, acc_avg = 0, 0
         total = len(train_loader)
@@ -96,7 +98,7 @@ def train(config):
                 print('\ntemp_loss: %f, temp_acc: %f' % (loss.item(), acc_item), flush=True)
                 writer.add_scalar('train/loss', loss.item(), epoch * total + i)
                 writer.add_scalar('train/acc', acc_item, epoch * total + i)
-                
+
 #             if (i + 1) % 1000 == 0:
 #                 break
 

@@ -32,7 +32,7 @@ class LabelSmoothingLoss(nn.Module):
         model_prob.masked_fill_((target == self.ignore_index).unsqueeze(1), 0)
 
         return F.kl_div(output, model_prob, reduction='sum')
-    
+
 class DotDict(dict):
     """A dictionary that supports dot notation
     as well as dictionary access notation
@@ -49,3 +49,8 @@ class DotDict(dict):
             if hasattr(value, 'keys'):
                 value = DotDict(value)
             self[key] = value
+
+def adjust_learning_rate(optimizer, lr):
+    """Sets the learning rate to the initial LR decayed by 10 every 30 epochs"""
+    for param_group in optimizer.param_groups:
+        param_group['lr'] = lr

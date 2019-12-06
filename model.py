@@ -31,7 +31,7 @@ class DecoderAttention(nn.Module):
 
         self.embeddingN = nn.Embedding(vocab_sizeN, embedding_sizeN, vocab_sizeN - 1)
         self.embeddingT = nn.Embedding(vocab_sizeT + attn_size + 3, embedding_sizeT, vocab_sizeT - 1)
-        
+
         self.W_hidden = nn.Linear(hidden_size, hidden_size)
         self.W_mem2hidden = nn.Linear(hidden_size, hidden_size)
         self.v = nn.Linear(hidden_size, 1)
@@ -51,10 +51,10 @@ class DecoderAttention(nn.Module):
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
             self.sigmoid = torch.nn.LogSigmoid()
-    
+
     def embedded_dropout(self, embed, words, scale=None):
         dropout = self.dropout
-        if dropout:
+        if dropout > 0:
             mask = embed.weight.data.new().resize_((embed.weight.size(0), 1)).bernoulli_(1 - dropout).expand_as(embed.weight) / (1 - dropout)
             masked_embed_weight = mask * embed.weight
         else:
@@ -90,13 +90,13 @@ class DecoderAttention(nn.Module):
         n_input = self.embedded_dropout(self.embeddingN, n_input)
         t_input = self.embedded_dropout(self.embeddingT, t_input)
         input = torch.cat([n_input, t_input], 1)
-        
+
         out, (h, c) = self.lstm(input.unsqueeze(1), hc)
-        
-        
+
+
         hidden = h[-1] # use only last layer hidden in attention
         out = out.squeeze(1)
-        
+
         scores = self.W_hidden(hidden).unsqueeze(1) # (batch_size, max_length, hidden_size)
         if enc_out.shape[1] > 0:
             scores_mem = self.W_mem2hidden(enc_out)
@@ -107,12 +107,12 @@ class DecoderAttention(nn.Module):
         attn_weights = F.softmax(scores, dim=1) # (batch_size, max_length)
         attn_weights = attn_weights.unsqueeze(1) # (batch_size, 1,  max_length)
         context = torch.matmul(attn_weights, enc_out).squeeze(1) # (batch_size, hidden_size)
-        
+
 #         context = torch.cat((out, context), 1)
 
 #         hidden_attn = self.selu(self.W_context(context))
         w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
-    
+
         if self.pointer:
             log_attn_weights = F.log_softmax(scores, dim=1)
             s_t = self.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
@@ -235,7 +235,7 @@ class MixtureAttention(nn.Module):
             )
             hs[:, iter] = hc[0][-1] # store last layer hidden state only
             padded_output = torch.zeros(
-                batch_size, 
+                batch_size,
                 self.vocab_sizeT + self.attn_size + 3
             ).to(self.device)
             padded_output[:,:output.shape[1]] = output
