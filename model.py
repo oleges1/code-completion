@@ -241,7 +241,9 @@ class MixtureAttention(nn.Module):
             ans.append(topi.detach())
 #                 cond = (t_tensor[:, iter] < self.vocab_sizeT + self.attn_size).long()
 #                 masked_target = cond * t_tensor[:, iter] + (1 - cond) * self.eof_T_id
-            token_losses[:, iter] = self.criterion(output, t_tensor[:, iter, :output.shape[1]])
+            target = t_tensor[:, iter]
+            target[target >= output.shape[1]] = self.eof_T_id # ignored index
+            token_losses[:, iter] = self.criterion(output, t_tensor[:, iter].clone().detach())
 
         loss = token_losses.sum() #/ batch_size
         return loss, torch.cat(ans, dim=1)

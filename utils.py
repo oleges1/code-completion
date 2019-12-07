@@ -2,6 +2,7 @@ import numpy as np
 import torch
 import torch.nn as nn
 import torch.nn.functional as F
+from sklearn.metrics import accuracy_score
 
 
 class LabelSmoothingLoss(nn.Module):
@@ -30,6 +31,11 @@ class LabelSmoothingLoss(nn.Module):
         model_prob.masked_fill_((target == self.ignore_index).unsqueeze(1), 0)
 
         return F.kl_div(output, model_prob, reduction='sum')
+    
+def accuracy(out, target, ignored_index):
+    out_ = out[target == ignored_index]
+    target_ = target[target == ignored_index]
+    return accuracy_score(out_, target_)
 
 class DotDict(dict):
     """A dictionary that supports dot notation

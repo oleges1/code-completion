@@ -3,8 +3,7 @@ from data import *
 import os
 from tqdm import tqdm
 import yaml
-from utils import DotDict, adjust_learning_rate
-from sklearn.metrics import accuracy_score
+from utils import DotDict, adjust_learning_rate, accuracy
 import torch
 try:
     from torch.utils.tensorboard import SummaryWriter
@@ -48,6 +47,8 @@ def train(config):
         num_workers=config.train.num_workers,
         collate_fn=data_val.collate_fn
     )
+    
+    ignored_index = data_train.vocab_sizeT - 1
 
     model = MixtureAttention(
         hidden_size = config.model.hidden_size,
@@ -62,6 +63,7 @@ def train(config):
         pointer = config.model.pointer,
         device = device
     )
+    
     start_epoch = 0
     if config.train.LOAD_EPOCH is not None:
         cpk = torch.load('checkpoints/%s/epoch_%04d.pth' % (config.name, config.train.LOAD_EPOCH))
@@ -89,7 +91,7 @@ def train(config):
 
             loss, ans = model(n, t, p)
             loss_avg += loss.item()
-            acc_item = accuracy_score(t.cpu().numpy().flatten(), ans.cpu().numpy().flatten())
+            acc_item = accuracy(ans.cpu().numpy().flatten(), t.cpu().numpy().flatten(), ignored_index)
             acc_avg += acc_item
             torch.nn.utils.clip_grad_norm_(model.parameters(), 15)
             loss.backward()
@@ -115,7 +117,7 @@ def train(config):
                     n, t, p = n.to(device), t.to(device), p.to(device)
                     loss, ans = model(n, t, p)
                     loss_eval += loss.item()
-                    acc += accuracy_score(t.cpu().numpy().flatten(), ans.cpu().numpy().flatten())
+                    acc += accuracy(ans.cpu().numpy().flatten(), t.cpu().numpy().flatten(), ignored_index)
                 acc /= len(test_loader)
                 loss_eval /= len(test_loader)
                 print('\navg acc:', acc, 'avg loss:', loss_eval)
