@@ -116,7 +116,7 @@ class DecoderAttention(nn.Module):
         if self.pointer:
             log_attn_weights = F.log_softmax(scores, dim=1)
             s_t = self.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
-            return torch.cat([s_t + w_t, torch.log(torch.clamp(-torch.expm1(s_t), min=1e-18, max=1e18)) + log_attn_weights], dim=1), (h, c)
+            return torch.cat([s_t + w_t, torch.log(torch.clamp(-torch.expm1(s_t), min=1e-20, max=1e20)) + log_attn_weights], dim=1), (h, c)
         else:
             return w_t, (h, c)
 
@@ -234,12 +234,6 @@ class MixtureAttention(nn.Module):
                 hs[torch.arange(batch_size),parent].squeeze(1).clone().detach()
             )
             hs[:, iter] = hc[0][-1] # store last layer hidden state only
-            padded_output = torch.zeros(
-                batch_size,
-                self.vocab_sizeT + self.attn_size + 3
-            ).to(self.device)
-            padded_output[:,:output.shape[1]] = output
-            output = padded_output
             topv, topi = output.topk(1)
             input = (n_tensor[:, iter].clone(), t_tensor[:, iter].clone())
             parent = p_tensor[:, iter]
@@ -247,7 +241,7 @@ class MixtureAttention(nn.Module):
             ans.append(topi.detach())
 #                 cond = (t_tensor[:, iter] < self.vocab_sizeT + self.attn_size).long()
 #                 masked_target = cond * t_tensor[:, iter] + (1 - cond) * self.eof_T_id
-            token_losses[:, iter] = self.criterion(output, t_tensor[:, iter].clone().detach())
+            token_losses[:, iter] = self.criterion(output, t_tensor[:, iter, :output.shape[1]])
 
         loss = token_losses.sum() #/ batch_size
         return loss, torch.cat(ans, dim=1)
