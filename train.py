@@ -12,6 +12,7 @@ except:
 
 # config:
 CONFIG_FILE = 'configs/default.yml'
+# CONFIG_FILE = 'configs/label_smoothing.yml'
 
 def train(config):
     writer = SummaryWriter('logs/' + config.name)

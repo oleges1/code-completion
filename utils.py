@@ -33,8 +33,8 @@ class LabelSmoothingLoss(nn.Module):
         return F.kl_div(output, model_prob, reduction='sum')
     
 def accuracy(out, target, ignored_index):
-    out_ = out[target == ignored_index]
-    target_ = target[target == ignored_index]
+    out_ = out[target != ignored_index]
+    target_ = target[target != ignored_index]
     return accuracy_score(out_, target_)
 
 class DotDict(dict):

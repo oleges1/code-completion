@@ -1,20 +1,21 @@
-name: default
+name: label_smoothing
 train:
-    batch_size: 128
+    batch_size: 64
     LOAD_EPOCH:
-    epochs: 100
+    epochs: 6
     num_workers: 6
     eval_period: 1
-    checkpoint_period: 2
+    checkpoint_period: 1
     device: cuda
     lr: 0.001
+    lr_decay: 0.6
 model:
-    hidden_size: 512
+    hidden_size: 1024
     embedding_sizeT: 512
     embedding_sizeN: 300
     dropout: 0.1
     num_layers: 2
-    label_smoothing: 0.1 # might be bug here
+    label_smoothing: 0.1
     pointer: True
 data:
     truncate_size: 100

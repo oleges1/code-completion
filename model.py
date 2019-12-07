@@ -172,7 +172,7 @@ class MixtureAttention(nn.Module):
                 device=self.device
             ) # ignore EOF ?!
         else:
-            self.criterion = nn.NLLLoss(reduction='none')
+            self.criterion = nn.NLLLoss(reduction='none', ignore_index=self.eof_T_id)
 #             self.criterion = nn.CrossEntropyLoss(reduction='none')
 
         self.pointer = pointer
