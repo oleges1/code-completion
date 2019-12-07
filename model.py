@@ -116,7 +116,7 @@ class DecoderAttention(nn.Module):
         if self.pointer:
             log_attn_weights = F.log_softmax(scores, dim=1)
             s_t = self.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
-            return torch.cat([s_t + w_t, torch.log1p(torch.clamp(torch.exp(s_t), min=0, max=1e10)) + log_attn_weights], dim=1), (h, c)
+            return torch.cat([s_t + w_t, torch.log(torch.clamp(-torch.expm1(s_t), min=1e-18, max=1e18)) + log_attn_weights], dim=1), (h, c)
         else:
             return w_t, (h, c)
 
