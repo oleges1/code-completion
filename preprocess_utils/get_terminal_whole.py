@@ -10,10 +10,12 @@ from collections import deque
 import time
 
 #attention line 48: for python dataset, not exclude the last one
-terminal_dict_filename = './pickle_data/terminal_dict_10k_PY.pickle'
+# terminal_dict_filename = './pickle_data/terminal_dict_10k_PY.pickle'
+terminal_dict_filename = './pickle_data/terminal_dict_1k_PY.pickle'
 train_filename = './json_data/python100k_train.json'
 test_filename = './json_data/python50k_eval.json'
-target_filename = './pickle_data/PY_terminal_10k_whole.pickle'
+# target_filename = './pickle_data/PY_terminal_10k_whole.pickle'
+target_filename = './pickle_data/PY_terminal_1k_whole.pickle'
 
 
 def restore_terminal_dict(filename):

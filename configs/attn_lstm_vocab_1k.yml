@@ -1,4 +1,4 @@
-name: attn_lstm
+name: attn_lstm_vocab_1k
 train:
     batch_size: 128
     LOAD_EPOCH:
@@ -22,4 +22,4 @@ model:
 data:
     truncate_size: 50
     N_filename: ./pickle_data/PY_non_terminal_small.pickle
-    T_filename: ./pickle_data/PY_terminal_10k_whole.pickle
+    T_filename: ./pickle_data/PY_terminal_1k_whole.pickle
