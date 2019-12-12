@@ -7,11 +7,13 @@ from collections import Counter
 import operator
 
 # vocab_size = 10000
-vocab_size = 1000
+# vocab_size = 1000
+vocab_size = 50000
 total_length = 92758587 # JS: 160143814, PY 92758587
 freq_dict_filename = './pickle_data/freq_dict_PY.pickle'
 # target_filename = './pickle_data/terminal_dict_10k_PY.pickle'
-target_filename = './pickle_data/terminal_dict_1k_PY.pickle'
+# target_filename = './pickle_data/terminal_dict_1k_PY.pickle'
+target_filename = './pickle_data/terminal_dict_50k_PY.pickle'
 
 def restore_freq_dict(filename):
   with open(filename, 'rb') as f:
