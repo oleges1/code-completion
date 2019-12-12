@@ -11,8 +11,10 @@ except:
     from tensorboardX import SummaryWriter
 
 # config:
-CONFIG_FILE = 'configs/default.yml'
-# CONFIG_FILE = 'configs/label_smoothing.yml'
+# CONFIG_FILE = 'configs/default.yml'
+# CONFIG_FILE = 'configs/attn_lstm.yml'
+# CONFIG_FILE = 'configs/pointer.yml'
+CONFIG_FILE = 'configs/label_smoothing.yml'
 
 def train(config):
     writer = SummaryWriter('logs/' + config.name)
@@ -94,7 +96,7 @@ def train(config):
             loss_avg += loss.item()
             acc_item = accuracy(ans.cpu().numpy().flatten(), t.cpu().numpy().flatten(), ignored_index)
             acc_avg += acc_item
-            torch.nn.utils.clip_grad_norm_(model.parameters(), 15)
+            torch.nn.utils.clip_grad_norm_(model.parameters(), config.train.clip_value)
             loss.backward()
 
             if (i + 1) % 100 == 0:

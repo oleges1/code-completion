@@ -1,6 +1,6 @@
-name: label_smoothing
+name: attn_lstm
 train:
-    batch_size: 64
+    batch_size: 128
     LOAD_EPOCH:
     epochs: 6
     num_workers: 6
@@ -16,10 +16,9 @@ model:
     embedding_sizeN: 300
     dropout: 0.05
     num_layers: 1
-    label_smoothing: 0.1
-    pointer: True
+    label_smoothing: 0
+    pointer: False
 data:
-    truncate_size: 100
+    truncate_size: 50
     N_filename: ./pickle_data/PY_non_terminal_small.pickle
     T_filename: ./pickle_data/PY_terminal_10k_whole.pickle
-    
