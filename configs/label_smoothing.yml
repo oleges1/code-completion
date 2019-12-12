@@ -18,6 +18,7 @@ model:
     num_layers: 1
     label_smoothing: 0.1
     pointer: True
+    attn: True
 data:
     truncate_size: 100
     N_filename: ./pickle_data/PY_non_terminal_small.pickle

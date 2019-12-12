@@ -1,4 +1,4 @@
-name: attn_lstm
+name: simple_lstm_vocab_10k
 train:
     batch_size: 128
     LOAD_EPOCH:
@@ -14,11 +14,11 @@ model:
     hidden_size: 800
     embedding_sizeT: 512
     embedding_sizeN: 300
-    dropout: 0.05
+    dropout: 0
     num_layers: 1
     label_smoothing: 0
+    attn: False
     pointer: False
-    attn: True
 data:
     truncate_size: 50
     N_filename: ./pickle_data/PY_non_terminal_small.pickle

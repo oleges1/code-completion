@@ -10,11 +10,12 @@ try:
 except:
     from tensorboardX import SummaryWriter
 
-# config:
-# CONFIG_FILE = 'configs/default.yml'
-# CONFIG_FILE = 'configs/attn_lstm.yml'
-# CONFIG_FILE = 'configs/pointer.yml'
+# configs:
+CONFIG_FILE = 'configs/default.yml'
+CONFIG_FILE = 'configs/attn_lstm.yml'
+CONFIG_FILE = 'configs/pointer.yml'
 CONFIG_FILE = 'configs/label_smoothing.yml'
+CONFIG_FILE = 'configs/simple_lstm.yml'
 
 def train(config):
     writer = SummaryWriter('logs/' + config.name)
@@ -64,6 +65,7 @@ def train(config):
         dropout = config.model.dropout,
         label_smoothing = config.model.label_smoothing,
         pointer = config.model.pointer,
+        attn = config.model.attn,
         device = device
     )
     

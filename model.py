@@ -8,6 +8,87 @@ import torch.nn.functional as F
 from torch.autograd import Variable
 from utils import *
 
+class DecoderSimple(nn.Module):
+    def __init__(
+        self,
+        hidden_size,
+        vocab_sizeT,
+        vocab_sizeN,
+        embedding_sizeT,
+        embedding_sizeN,
+        dropout,
+        num_layers,
+        device='cuda'
+    ):
+        super(DecoderSimple, self).__init__()
+        self.num_layers = num_layers
+        self.hidden_size = hidden_size
+        self.device = device
+        self.dropout = dropout
+
+        self.embeddingN = nn.Embedding(vocab_sizeN, embedding_sizeN, vocab_sizeN - 1)
+        self.embeddingT = nn.Embedding(vocab_sizeT + 3, embedding_sizeT, vocab_sizeT - 1)
+
+        self.lstm = nn.LSTM(
+            embedding_sizeN + embedding_sizeT,
+            hidden_size,
+            num_layers=num_layers,
+            batch_first=True,
+            bidirectional=False
+        )
+        self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + 3) # map into T
+        
+    def embedded_dropout(self, embed, words, scale=None):
+        dropout = self.dropout
+        if dropout > 0:
+            mask = embed.weight.data.new().resize_((embed.weight.size(0), 1)).bernoulli_(1 - dropout).expand_as(embed.weight) / (1 - dropout)
+            masked_embed_weight = mask * embed.weight
+        else:
+            masked_embed_weight = embed.weight
+        if scale:
+            masked_embed_weight = scale.expand_as(masked_embed_weight) * masked_embed_weight
+
+        padding_idx = embed.padding_idx
+        if padding_idx is None:
+            padding_idx = -1
+        
+        words[words >= embed.weight.size(0)] = padding_idx
+
+        X = F.embedding(words, masked_embed_weight,
+            padding_idx, embed.max_norm, embed.norm_type,
+            embed.scale_grad_by_freq, embed.sparse
+        )
+        return X
+
+    def forward(
+        self,
+        input,
+        hc,
+        enc_out,
+        mask,
+        h_parent
+    ):
+        n_input, t_input = input
+        batch_size = n_input.size(0)
+
+        # (enc_out, enc_out_W) [(batch_size, max_length, hidden_size * 2), (batch_size, max_length, hidden_size)]
+        # mask (batch_size, max_length)
+        # hidden_prev (batch_size, hidden_size)
+
+        n_input = self.embedded_dropout(self.embeddingN, n_input)
+        t_input = self.embedded_dropout(self.embeddingT, t_input)
+        input = torch.cat([n_input, t_input], 1)
+
+        out, (h, c) = self.lstm(input.unsqueeze(1), hc)
+
+
+        hidden = h[-1] # use only last layer hidden in attention
+        out = out.squeeze(1)
+        
+        w_t = F.log_softmax(self.w_global(torch.cat([hidden, out, h_parent], dim=1)), dim=1)
+        return w_t, (h, c)
+
+
 class DecoderAttention(nn.Module):
     def __init__(
         self,
@@ -50,7 +131,7 @@ class DecoderAttention(nn.Module):
         self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + 3) # map into T
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
-            self.sigmoid = torch.nn.LogSigmoid()
+            self.sigmoid = torch.nn.Sigmoid()
 
     def embedded_dropout(self, embed, words, scale=None):
         dropout = self.dropout
@@ -65,6 +146,8 @@ class DecoderAttention(nn.Module):
         padding_idx = embed.padding_idx
         if padding_idx is None:
             padding_idx = -1
+            
+        words[words >= embed.weight.size(0)] = padding_idx
 
         X = F.embedding(words, masked_embed_weight,
             padding_idx, embed.max_norm, embed.norm_type,
@@ -108,16 +191,13 @@ class DecoderAttention(nn.Module):
         attn_weights = attn_weights.unsqueeze(1) # (batch_size, 1,  max_length)
         context = torch.matmul(attn_weights, enc_out).squeeze(1) # (batch_size, hidden_size)
 
-#         context = torch.cat((out, context), 1)
-
-#         hidden_attn = self.selu(self.W_context(context))
-        w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
-
         if self.pointer:
-            log_attn_weights = F.log_softmax(scores, dim=1)
+            w_t = F.softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
+            attn_weights = attn_weights.squeeze(1)
             s_t = self.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
-            return torch.cat([s_t + w_t, torch.log(torch.clamp(-torch.expm1(s_t), min=1e-20, max=1e20)) + log_attn_weights], dim=1), (h, c)
+            return torch.cat([s_t * w_t, (1 - s_t) * attn_weights], dim=1), (h, c)
         else:
+            w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
             return w_t, (h, c)
 
 class MixtureAttention(nn.Module):
@@ -133,6 +213,7 @@ class MixtureAttention(nn.Module):
         device='cuda',
 #         teacher_forcing_ratio = 0.7,
         label_smoothing = 0.1,
+        attn=True,
         pointer=True,
         attn_size=50,
         SOS_token=0
@@ -150,30 +231,44 @@ class MixtureAttention(nn.Module):
         self.vocab_sizeN = vocab_sizeN
 
         self.W_out = nn.Linear(hidden_size * 2, hidden_size)
+        
+        if attn:
+            self.decoder = DecoderAttention(
+                hidden_size=hidden_size,
+                vocab_sizeT=vocab_sizeT,
+                vocab_sizeN=vocab_sizeN,
+                embedding_sizeT=embedding_sizeT,
+                embedding_sizeN=embedding_sizeN,
+                num_layers=num_layers,
+                attn_size=attn_size,
+                dropout=dropout,
+                pointer=pointer,
+                device=device
+            ).to(device)
+        else:
+            self.decoder = DecoderSimple(
+                hidden_size=hidden_size,
+                vocab_sizeT=vocab_sizeT,
+                vocab_sizeN=vocab_sizeN,
+                embedding_sizeT=embedding_sizeT,
+                embedding_sizeN=embedding_sizeN,
+                num_layers=num_layers,
+                dropout=dropout,
+                device=device
+            ).to(device)
 
-        self.decoder = DecoderAttention(
-            hidden_size=hidden_size,
-            vocab_sizeT=vocab_sizeT,
-            vocab_sizeN=vocab_sizeN,
-            embedding_sizeT=embedding_sizeT,
-            embedding_sizeN=embedding_sizeN,
-            num_layers=num_layers,
-            attn_size=attn_size,
-            dropout=dropout,
-            pointer=pointer,
-            device=device
-        ).to(device)
-
-        if label_smoothing > 0:
+        if label_smoothing > 0 and not pointer:
             self.criterion = LabelSmoothingLoss(
                 label_smoothing,
                 tgt_vocab_size=vocab_sizeT + attn_size + 3,
                 ignore_index=self.eof_T_id,
                 device=self.device
             ) # ignore EOF ?!
+        elif pointer:
+            self.criterion = nn.CrossEntropyLoss(reduction='none', ignore_index=self.eof_T_id)
         else:
             self.criterion = nn.NLLLoss(reduction='none', ignore_index=self.eof_T_id)
-#             self.criterion = nn.CrossEntropyLoss(reduction='none')
+#             
 
         self.pointer = pointer
 
