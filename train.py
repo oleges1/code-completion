@@ -13,9 +13,7 @@ except:
 # configs:
 CONFIG_FILE = 'configs/default.yml'
 CONFIG_FILE = 'configs/attn_lstm.yml'
-CONFIG_FILE = 'configs/pointer.yml'
-CONFIG_FILE = 'configs/label_smoothing.yml'
-CONFIG_FILE = 'configs/simple_lstm.yml'
+CONFIG_FILE = 'configs/pointer_vocab_10k.yml'
 
 def train(config):
     writer = SummaryWriter('logs/' + config.name)

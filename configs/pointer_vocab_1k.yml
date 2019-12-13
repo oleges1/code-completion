@@ -1,6 +1,6 @@
-name: pointer_crossentropy
+name: pointer_vocab_1k
 train:
-    batch_size: 128
+    batch_size: 256
     LOAD_EPOCH:
     epochs: 6
     num_workers: 6
@@ -22,4 +22,4 @@ model:
 data:
     truncate_size: 50
     N_filename: ./pickle_data/PY_non_terminal_small.pickle
-    T_filename: ./pickle_data/PY_terminal_10k_whole.pickle
+    T_filename: ./pickle_data/PY_terminal_1k_whole.pickle

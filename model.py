@@ -111,7 +111,7 @@ class DecoderAttention(nn.Module):
         self.dropout = dropout
 
         self.embeddingN = nn.Embedding(vocab_sizeN, embedding_sizeN, vocab_sizeN - 1)
-        self.embeddingT = nn.Embedding(vocab_sizeT + attn_size + 3, embedding_sizeT, vocab_sizeT - 1)
+        self.embeddingT = nn.Embedding(vocab_sizeT + attn_size + 2, embedding_sizeT, vocab_sizeT - 1)
 
         self.W_hidden = nn.Linear(hidden_size, hidden_size)
         self.W_mem2hidden = nn.Linear(hidden_size, hidden_size)
@@ -128,10 +128,10 @@ class DecoderAttention(nn.Module):
             batch_first=True,
             bidirectional=False
         )
-        self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + 3) # map into T
+        self.w_global = nn.Linear(hidden_size * 3, vocab_sizeT + 2) # map into T
         if self.pointer:
             self.w_switcher = nn.Linear(hidden_size * 2, 1)
-            self.sigmoid = torch.nn.Sigmoid()
+            self.logsigmoid = torch.nn.LogSigmoid()
 
     def embedded_dropout(self, embed, words, scale=None):
         dropout = self.dropout
@@ -192,10 +192,10 @@ class DecoderAttention(nn.Module):
         context = torch.matmul(attn_weights, enc_out).squeeze(1) # (batch_size, hidden_size)
 
         if self.pointer:
-            w_t = F.softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
-            attn_weights = attn_weights.squeeze(1)
-            s_t = self.sigmoid(self.w_switcher(torch.cat([context, out], dim=1)))
-            return torch.cat([s_t * w_t, (1 - s_t) * attn_weights], dim=1), (h, c)
+            w_t = F.log_softmax(self.w_global(torch.cat([context, hidden, h_parent], dim=1)), dim=1)
+            attn_weights = F.log_softmax(scores, dim=1)
+            w_s = self.w_switcher(torch.cat([context, hidden], dim=1))
+            return torch.cat([self.logsigmoid(w_s) + w_t, self.logsigmoid(-w_s) + attn_weights], dim=1), (h, c)
         else:
             w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
             return w_t, (h, c)
@@ -257,15 +257,13 @@ class MixtureAttention(nn.Module):
                 device=device
             ).to(device)
 
-        if label_smoothing > 0 and not pointer:
+        if label_smoothing > 0:
             self.criterion = LabelSmoothingLoss(
                 label_smoothing,
                 tgt_vocab_size=vocab_sizeT + attn_size + 3,
                 ignore_index=self.eof_T_id,
                 device=self.device
             ) # ignore EOF ?!
-        elif pointer:
-            self.criterion = nn.CrossEntropyLoss(reduction='none', ignore_index=self.eof_T_id)
         else:
             self.criterion = nn.NLLLoss(reduction='none', ignore_index=self.eof_T_id)
 #             
@@ -332,6 +330,8 @@ class MixtureAttention(nn.Module):
             topv, topi = output.topk(1)
             input = (n_tensor[:, iter].clone(), t_tensor[:, iter].clone())
             parent = p_tensor[:, iter]
+            
+            # print(output.shape[1])
 
             ans.append(topi.detach())
 #                 cond = (t_tensor[:, iter] < self.vocab_sizeT + self.attn_size).long()

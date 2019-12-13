@@ -1,8 +1,8 @@
-name: simple_lstm_vocab_1k
+name: pointer_vocab_50k
 train:
-    batch_size: 1024
+    batch_size: 256
     LOAD_EPOCH:
-    epochs: 3
+    epochs: 6
     num_workers: 6
     eval_period: 1
     checkpoint_period: 1
@@ -17,9 +17,9 @@ model:
     dropout: 0
     num_layers: 1
     label_smoothing: 0
-    attn: False
-    pointer: False
+    pointer: True
+    attn: True
 data:
     truncate_size: 50
     N_filename: ./pickle_data/PY_non_terminal_small.pickle
-    T_filename: ./pickle_data/PY_terminal_1k_whole.pickle
+    T_filename: ./pickle_data/PY_terminal_50k_whole.pickle
