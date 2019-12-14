@@ -1,6 +1,6 @@
 name: pointer_vocab_50k
 train:
-    batch_size: 256
+    batch_size: 128
     LOAD_EPOCH:
     epochs: 6
     num_workers: 6

@@ -192,9 +192,9 @@ class DecoderAttention(nn.Module):
         context = torch.matmul(attn_weights, enc_out).squeeze(1) # (batch_size, hidden_size)
 
         if self.pointer:
-            w_t = F.log_softmax(self.w_global(torch.cat([context, hidden, h_parent], dim=1)), dim=1)
+            w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
             attn_weights = F.log_softmax(scores, dim=1)
-            w_s = self.w_switcher(torch.cat([context, hidden], dim=1))
+            w_s = self.w_switcher(torch.cat([context, out], dim=1))
             return torch.cat([self.logsigmoid(w_s) + w_t, self.logsigmoid(-w_s) + attn_weights], dim=1), (h, c)
         else:
             w_t = F.log_softmax(self.w_global(torch.cat([context, out, h_parent], dim=1)), dim=1)
@@ -211,7 +211,6 @@ class MixtureAttention(nn.Module):
         num_layers,
         dropout,
         device='cuda',
-#         teacher_forcing_ratio = 0.7,
         label_smoothing = 0.1,
         attn=True,
         pointer=True,

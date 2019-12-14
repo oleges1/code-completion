@@ -1,6 +1,6 @@
-name: default
+name: label_smoothing_pointer_10k
 train:
-    batch_size: 128
+    batch_size: 256
     LOAD_EPOCH:
     epochs: 6
     num_workers: 6
@@ -9,17 +9,18 @@ train:
     device: cuda
     lr: 0.001
     lr_decay: 0.6
-    clip_value: 15 # TODO: check 5
+    clip_value: 5
 model:
-    hidden_size: 1024 # TODO: check smaller
+    hidden_size: 800
     embedding_sizeT: 512
     embedding_sizeN: 300
-    dropout: 0.1 # TODO: check smaller
+    dropout: 0.1
     num_layers: 1
-    label_smoothing: 0
+    label_smoothing: 0.1
     pointer: True
     attn: True
 data:
     truncate_size: 50
     N_filename: ./pickle_data/PY_non_terminal_small.pickle
     T_filename: ./pickle_data/PY_terminal_10k_whole.pickle
+    

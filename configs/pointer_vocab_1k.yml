@@ -1,8 +1,8 @@
 name: pointer_vocab_1k
 train:
-    batch_size: 256
+    batch_size: 512
     LOAD_EPOCH:
-    epochs: 6
+    epochs: 5
     num_workers: 6
     eval_period: 1
     checkpoint_period: 1
@@ -14,7 +14,7 @@ model:
     hidden_size: 800
     embedding_sizeT: 512
     embedding_sizeN: 300
-    dropout: 0
+    dropout: 0.05
     num_layers: 1
     label_smoothing: 0
     pointer: True

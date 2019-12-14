@@ -9,11 +9,7 @@ try:
     from torch.utils.tensorboard import SummaryWriter
 except:
     from tensorboardX import SummaryWriter
-
-# configs:
-CONFIG_FILE = 'configs/default.yml'
-CONFIG_FILE = 'configs/attn_lstm.yml'
-CONFIG_FILE = 'configs/pointer_vocab_10k.yml'
+import argparse
 
 def train(config):
     writer = SummaryWriter('logs/' + config.name)
@@ -135,6 +131,10 @@ def train(config):
             }, 'checkpoints/%s/epoch_%04d.pth' % (config.name, epoch))
 
 if __name__ == '__main__':
-    with open(CONFIG_FILE, 'r') as f:
+    parser = argparse.ArgumentParser(description='Training model.')
+    parser.add_argument('--config', default='configs/pointer_vocab_10k.yml',
+                        help='path to config file')
+    args = parser.parse_args()
+    with open(args.config, 'r') as f:
         config = DotDict(yaml.safe_load(f))
     train(config)
