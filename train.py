@@ -91,7 +91,7 @@ def train(config):
 
             loss, ans = model(n, t, p)
             loss_avg += loss.item()
-            acc_item = accuracy(ans.cpu().numpy().flatten(), t.cpu().numpy().flatten(), ignored_index)
+            acc_item = accuracy(ans.cpu().numpy().flatten(), t.cpu().numpy().flatten(), ignored_index, unk_index)
             acc_avg += acc_item
             torch.nn.utils.clip_grad_norm_(model.parameters(), config.train.clip_value)
             loss.backward()
@@ -117,7 +117,7 @@ def train(config):
                     n, t, p = n.to(device), t.to(device), p.to(device)
                     loss, ans = model(n, t, p)
                     loss_eval += loss.item()
-                    acc += accuracy(ans.cpu().numpy().flatten(), t.cpu().numpy().flatten(), ignored_index)
+                    acc += accuracy(ans.cpu().numpy().flatten(), t.cpu().numpy().flatten(), ignored_index, unk_index)
                 acc /= len(test_loader)
                 loss_eval /= len(test_loader)
                 print('\navg acc:', acc, 'avg loss:', loss_eval)
