@@ -47,6 +47,7 @@ def train(config):
     )
     
     ignored_index = data_train.vocab_sizeT - 1
+    unk_index = data_train.vocab_sizeT - 2
 
     model = MixtureAttention(
         hidden_size = config.model.hidden_size,

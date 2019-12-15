@@ -1,8 +1,8 @@
 name: simple_lstm_vocab_50k
 train:
-    batch_size: 256
+    batch_size: 128
     LOAD_EPOCH:
-    epochs: 5
+    epochs: 1
     num_workers: 6
     eval_period: 1
     checkpoint_period: 1
