@@ -56,7 +56,7 @@ def train(config):
         attn_size = data_train.attn_size,
         embedding_sizeT = config.model.embedding_sizeT,
         embedding_sizeN = config.model.embedding_sizeN,
-        num_layers = 1,
+        num_layers = config.model.num_layers,
         dropout = config.model.dropout,
         label_smoothing = config.model.label_smoothing,
         pointer = config.model.pointer,
@@ -71,7 +71,7 @@ def train(config):
         model = model.to(device)
         optimizer = torch.optim.AdamW(model.parameters(), lr=config.train.lr)
         optimizer.load_state_dict(cpk['optimizer'])
-        start_epoch = cpk['epoch']
+        start_epoch = cpk['epoch'] + 1
         print('loaded', start_epoch, '!')
     else:
         model = model.to(device)
