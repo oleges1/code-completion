@@ -1,5 +1,5 @@
 *json*
-*ipynb*
+*ipynb_checkpoints*
 *__pycache__*
 *.log
 *.pickle
@@ -7,3 +7,4 @@
 *.pdf
 checkpoints
 logs
+*.out

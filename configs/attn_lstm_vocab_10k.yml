@@ -1,8 +1,8 @@
 name: attn_lstm_vocab_10k
 train:
     batch_size: 128
-    LOAD_EPOCH:
-    epochs: 6
+    LOAD_EPOCH: 4
+    epochs: 8
     num_workers: 6
     eval_period: 1
     checkpoint_period: 1

@@ -78,7 +78,7 @@ def train(config):
         optimizer = torch.optim.AdamW(model.parameters(), lr=config.train.lr)
 
     for epoch in range(start_epoch, config.train.epochs):
-        lr = config.train.lr * config.train.lr_decay ** max(epoch + 1 - config.train.epochs, 0.0)
+        lr = config.train.lr * config.train.lr_decay ** max(epoch - 1, 0)
         adjust_learning_rate(optimizer, lr)
         print("epoch: %04d" % epoch)
         loss_avg, acc_avg = 0, 0
