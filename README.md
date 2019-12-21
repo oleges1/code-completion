@@ -1,5 +1,5 @@
-# code-completion
-Pytorch version of code completion with neural attention and pointer networks
+# Code-Completion
+Pytorch version of [code completion with neural attention and pointer networks](https://arxiv.org/pdf/1711.09573.pdf)
 
 
 ## TO DO LIST:
@@ -19,7 +19,7 @@ Pytorch version of code completion with neural attention and pointer networks
 - run `python3 preprocess.py` for preprocessing
 - run `CUDA_VISIBLE_DEVICES=id python3 train.py --config=path/to/config.yml` for training with specified config, list of available configscan be found at configs folder
 
-## Results (acc@1):
+## Results for python (acc@1):
 
 
 model | vocab_size 1k | vocab_size 10k | vocab_size 50k
