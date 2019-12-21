@@ -21,7 +21,7 @@ Pytorch version of code completion with neural attention and pointer networks
 
 ## Results:
 Here will be results on validation and pretrained models links !
-| model | acc@1 vocab_size 1k | acc@1 vocab_size 10k | acc@1 vocab_size 50k |
+| model | vocab_size1k | vocab_size10k | vocab_size50k |
 | ------ | --- | --- | --- |
 | simple_lstm | 66.33 | 65.7 | 61.68 |
 | attn_lstm | 64.95 | 65.77 | 63.15 |
