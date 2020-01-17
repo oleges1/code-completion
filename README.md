@@ -6,6 +6,7 @@ Pytorch version of [code completion with neural attention and pointer networks](
 - [ ] refactor preprocessing code
 - [ ] add python to AST code
 - [ ] config for preprocessing
+- [ ] join training for type
 
 ## Requirments list:
 
@@ -19,7 +20,7 @@ Pytorch version of [code completion with neural attention and pointer networks](
 - run `python3 preprocess.py` for preprocessing
 - run `CUDA_VISIBLE_DEVICES=id python3 train.py --config=path/to/config.yml` for training with specified config, list of available configscan be found at configs folder
 
-## Results for python (acc@1):
+## Results for python value prediction (acc@1):
 
 
 model | vocab_size 1k | vocab_size 10k | vocab_size 50k
